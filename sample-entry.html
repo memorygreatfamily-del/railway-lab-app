@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sample Entry</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+
+    <header>
+        <button onclick="window.location.href='index.html'" style="float:left; background:none; border:none; color:white; cursor:pointer;"><i class="fas fa-arrow-left"></i> Back</button>
+        <h2 id="pageTitle">Sample Entry</h2>
+    </header>
+
+    <main class="container">
+        
+        <section class="form-section">
+            <h3><i class="fas fa-info-circle"></i> Master Details</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Sample Received Date <span class="compulsory-star">*</span></label>
+                    <input type="date" id="receivedDate" required>
+                </div>
+                <div class="form-group">
+                    <label>Letter Reference No. <span class="compulsory-star">*</span></label>
+                    <input type="text" id="letterNo" placeholder="Enter Ref No..." required>
+                </div>
+                <div class="form-group">
+                    <label>Received From (Sender)</label>
+                    <input type="text" id="sender" placeholder="e.g. SSE/C&W">
+                </div>
+                <div class="form-group">
+                    <label>Railway Zone <span class="compulsory-star">*</span></label>
+                    <input list="zoneList" id="railwayZone" placeholder="Select or Type Zone" onchange="checkZone()">
+                    <datalist id="zoneList"></datalist>
+                </div>
+                <div class="form-group hidden" id="divisionGroup">
+                    <label>Division (NWR Mandatory) <span class="compulsory-star">*</span></label>
+                    <input list="divisionList" id="division" placeholder="Select Division">
+                    <datalist id="divisionList"></datalist>
+                </div>
+            </div>
+        </section>
+
+        <section id="batch-section" class="form-section hidden">
+            <h3><i class="fas fa-layer-group"></i> Sample List (Batch Entry)</h3>
+            <div style="overflow-x: auto;">
+                <table class="batch-table">
+                    <thead><tr id="batchHeaderRow"></tr></thead>
+                    <tbody id="batchTableBody"></tbody>
+                </table>
+            </div>
+            <button class="btn btn-add-row" onclick="addBatchRow()">+ Add Another Sample</button>
+        </section>
+
+        <section id="single-section" class="form-section hidden">
+            <h3><i class="fas fa-file-alt"></i> Sample Details</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Lab No.</label>
+                    <input type="text" id="singleLabNo" placeholder="Auto/Manual">
+                </div>
+                <div class="form-group">
+                    <label>Sample Description</label>
+                    <input type="text" id="singleDesc">
+                </div>
+                <div class="form-group">
+                    <label>Sample Name</label>
+                    <input type="text" id="singleName">
+                </div>
+                <div class="form-group">
+                    <label>PO No.</label>
+                    <input type="text" id="poNo">
+                </div>
+                <div class="form-group">
+                    <label>PL No.</label>
+                    <input type="text" id="plNo">
+                </div>
+            </div>
+        </section>
+
+        <section class="form-section">
+            <h3><i class="fas fa-list-check"></i> Standard & Tests Selection</h3>
+            
+            <div class="search-box">
+                <input type="text" id="stdSearch" placeholder="Search Standard (e.g., IS 1448)...">
+                <button class="btn btn-primary" id="btnSearchStd" onclick="window.searchStandard()">Search</button>
+            </div>
+
+            <div id="standardInfo" style="margin-bottom:10px; color:#0056b3; font-weight:bold; display:none;">
+                <i class="fas fa-check-circle"></i> Using Standard: <span id="currentStdName"></span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="batch-table">
+                    <thead>
+                        <tr>
+                            <th>Test Name</th>
+                            <th>Method</th>
+                            <th>Requirement / Limit</th>
+                            <th style="text-align: center;">Perform?</th>
+                        </tr>
+                    </thead>
+                    <tbody id="testTableBody">
+                        <tr><td colspan="4" style="text-align:center; color:#777;">Search standard or auto-load...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            
+
+
+
+
+
+            <div style="margin-top:10px;">
+                <button id="btnAddCustomTest" class="btn btn-secondary" style="display:none;">
+                    + Add New Test to this Standard
+                </button>
+            </div>
+            
+        </section>
+
+        <div style="text-align: right; margin-top: 20px;">
+            <button class="btn btn-primary" onclick="goToDataEntry()">Next: Enter Test Data <i class="fas fa-arrow-right"></i></button>
+        </div>
+
+    </main>
+
+    <div id="stdModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-btn" onclick="document.getElementById('stdModal').classList.add('hidden')">&times;</span>
+            <h3 id="modalTitle"><i class="fas fa-plus-circle"></i> Add New Test</h3>
+            
+            <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+                <div class="form-group">
+                    <label>Test Name:</label>
+                    <input type="text" id="modalTestName" placeholder="e.g. Flash Point">
+                </div>
+                <div class="form-group">
+                    <label>Method:</label>
+                    <input type="text" id="modalTestMethod" placeholder="e.g. P:69">
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
+                <label>Logic Type:</label>
+                <select id="modalLimitType" onchange="window.toggleLimitInputs()">
+                    <option value="min">Minimum Value (Min)</option>
+                    <option value="max">Maximum Value (Max)</option>
+                    <option value="range">Range (Min - Max)</option>
+                    <option value="text">Text / Visual Only</option>
+                </select>
+            </div>
+
+            <div class="form-grid" id="limitInputs" style="margin-top:10px;">
+                <div class="form-group" id="inputMinGroup">
+                    <label>Min Value:</label>
+                    <input type="number" step="0.01" id="modalMin">
+                </div>
+                <div class="form-group hidden" id="inputMaxGroup">
+                    <label>Max Value:</label>
+                    <input type="number" step="0.01" id="modalMax">
+                </div>
+            </div>
+
+            
+            
+            <div style="text-align: right; margin-top: 20px;">
+                <button id="btnSaveTest" class="btn btn-success">Save / Add</button>
+            </div>
+            <!-- <div style="text-align: right; margin-top: 20px;">
+                <button class="btn btn-success" onclick="window.addCustomTestFromModal()">Add to List</button>
+            </div> -->
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    
+    <script src="js/app.js"></script>
+
+    
+    
+    
+    <script type="module">
+        // 1. Import Logic
+        import { searchStandard, startNewStandardCreation, openCreationModal, toggleLimitInputs, initAutoLoad } from "./js/standards.js";
+    
+        // 2. EXPOSE TO WINDOW (Link JS to HTML)
+        window.searchStandard = searchStandard;
+        window.startNewStandardCreation = startNewStandardCreation;
+        window.openCreationModal = openCreationModal; // Modal kholne ke liye
+        window.toggleLimitInputs = toggleLimitInputs; // Min/Max box dikhane ke liye
+        
+        // 3. Auto Load on Startup (Jaise hi page khule)
+        window.addEventListener('DOMContentLoaded', () => {
+            initAutoLoad();
+        });
+    
+        console.log("Modules Loaded & Linked");
+    </script>
+    
+    
+    <!-- <script type="module">
+        // Import Logic
+        import { searchStandard, openCreationModal, toggleLimitInputs, addCustomTestFromModal, initAutoLoad } from "./js/standards.js";
+
+        // EXPOSE TO WINDOW (Bridge Logic)
+        window.searchStandard = searchStandard;
+        window.openCreationModal = openCreationModal;
+        window.toggleLimitInputs = toggleLimitInputs;
+        window.addCustomTestFromModal = addCustomTestFromModal;
+        
+        // Auto Load on Startup (For Water/Diesel)
+        window.addEventListener('DOMContentLoaded', () => {
+            initAutoLoad();
+        });
+
+        console.log("Modules Loaded & Linked");
+    </script> -->
+
+</body>
+</html>

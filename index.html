@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab Management - Home</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <header>
+        <h1>Indian Railways Laboratory (CMT)</h1>
+    </header>
+
+    <main class="container">
+        <h2 style="text-align: center; color: #444;">Select Sample Category</h2>
+        
+        <div class="card-grid">
+            <div class="card" onclick="selectCategory('Water')">
+                <i class="fas fa-water icon"></i>
+                <h3>Water</h3>
+            </div>
+            <div class="card" onclick="selectCategory('Lube Oil')">
+                <i class="fas fa-oil-can icon"></i>
+                <h3>Lube Oil</h3>
+            </div>
+            <div class="card" onclick="selectCategory('Grease')">
+                <i class="fas fa-cog icon"></i>
+                <h3>Grease</h3>
+            </div>
+            <div class="card" onclick="selectCategory('Diesel')">
+                <i class="fas fa-gas-pump icon"></i>
+                <h3>Diesel</h3>
+            </div>
+            <div class="card" onclick="selectCategory('Misc')">
+                <i class="fas fa-flask icon"></i>
+                <h3>Misc</h3>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function selectCategory(type) {
+            localStorage.setItem('selectedCategory', type);
+            window.location.href = 'sample-entry.html';
+        }
+    </script>
+</body>
+</html>

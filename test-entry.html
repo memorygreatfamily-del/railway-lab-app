@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Result Entry - Railway Lab</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .tab-btn { padding: 10px 20px; cursor: pointer; border: 1px solid #0056b3; background: white; border-radius: 5px 5px 0 0; }
+        .tab-btn.active { background: #0056b3; color: white; }
+        .test-input-card { background: #f9f9f9; padding: 15px; margin-bottom: 10px; border-left: 5px solid #0056b3; border-radius: 4px; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 15px; align-items: center; }
+        .status-badge { padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; text-align: center; }
+        .status-pass { background: #d4edda; color: #155724; }
+        .status-fail { background: #f8d7da; color: #721c24; }
+        .status-relaxed { background: #fff3cd; color: #856404; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <button onclick="window.history.back()" style="float:left; background:none; border:none; color:white; cursor:pointer;"><i class="fas fa-arrow-left"></i> Back</button>
+        <h2>Step 3: Test Result Entry</h2>
+    </header>
+
+    <main class="container">
+        <section class="form-section">
+            <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+                <div><strong>Category:</strong> <span id="displayCategory">--</span></div>
+                <div><strong>Letter No:</strong> <span id="displayLetter">--</span></div>
+                <div><strong>Date:</strong> <span id="displayDate">--</span></div>
+            </div>
+        </section>
+
+        <div id="sampleTabs" style="display:flex; gap:5px; margin-bottom: -1px; overflow-x:auto;"></div>
+
+        <section class="form-section" style="border-radius: 0 8px 8px 8px;">
+            <h3 id="activeSampleTitle">Loading Sample...</h3>
+            <div id="testTableHeaders" class="test-input-card" style="background: #eee; font-weight: bold; border-left-color: transparent;">
+                <div>Test Parameter</div>
+                <div>Method / Spec</div>
+                <div>Observed Value</div>
+                <div>Remark</div>
+            </div>
+            <div id="testInputArea">
+                </div>
+        </section>
+
+        <div style="text-align: right; margin-top: 20px;">
+            <button class="btn btn-success" onclick="saveAllResults()">Save All & Generate Draft <i class="fas fa-save"></i></button>
+        </div>
+    </main>
+
+    <script>
+        let sessionData = null;
+        let activeSampleIndex = 0;
+        let resultsStore = {}; // Stores values indexed by SampleID_TestName
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const rawData = localStorage.getItem('labSessionData');
+            if(!rawData) { alert("No data!"); window.location.href='index.html'; return; }
+            
+            sessionData = JSON.parse(rawData);
+            
+            // Fill Header
+            document.getElementById('displayCategory').innerText = sessionData.meta.category;
+            document.getElementById('displayLetter').innerText = sessionData.meta.letterNo;
+            document.getElementById('displayDate').innerText = sessionData.meta.receivedDate;
+
+            renderTabs();
+            loadSampleForm(0);
+        });
+
+        function renderTabs() {
+            const container = document.getElementById('sampleTabs');
+            container.innerHTML = "";
+            sessionData.samples.forEach((sample, index) => {
+                const btn = document.createElement('button');
+                btn.className = `tab-btn ${index === activeSampleIndex ? 'active' : ''}`;
+                btn.innerHTML = `<i class="fas fa-flask"></i> ${sample.labNo}`;
+                btn.onclick = () => loadSampleForm(index);
+                container.appendChild(btn);
+            });
+        }
+
+        function loadSampleForm(index) {
+            // Save current inputs to memory before switching
+            saveCurrentToMemory();
+
+            activeSampleIndex = index;
+            renderTabs();
+            
+            const sample = sessionData.samples[index];
+            document.getElementById('activeSampleTitle').innerText = `Lab No: ${sample.labNo} (${sample.specific1 || sample.desc || ''})`;
+            
+            const inputArea = document.getElementById('testInputArea');
+            inputArea.innerHTML = "";
+
+            sessionData.tests.forEach((test) => {
+                const storageKey = `${sample.labNo}_${test.name}`;
+                const savedValue = resultsStore[storageKey] || "";
+
+                const card = document.createElement('div');
+                card.className = "test-input-card";
+                
+                // Logic for Spec Display
+                let specDisplay = test.method;
+                
+                card.innerHTML = `
+                    <div>
+                        <strong>${test.name}</strong><br>
+                        <small style="color:#666">${specDisplay}</small>
+                    </div>
+                    <div style="font-size: 0.85rem; color: #555;">${getSpecText(test)}</div>
+                    <div>
+                        <input type="${test.type === 'text' ? 'text' : 'number'}" 
+                               class="result-input" 
+                               placeholder="Enter Result"
+                               data-testname="${test.name}"
+                               value="${savedValue}"
+                               oninput="validateInput(this, ${JSON.stringify(test).replace(/"/g, '&quot;')})">
+                    </div>
+                    <div id="status_${storageKey}" class="status-badge">--</div>
+                `;
+                inputArea.appendChild(card);
+                
+                // Trigger validation if value exists
+                if(savedValue) {
+                    const inputEl = card.querySelector('.result-input');
+                    validateInput(inputEl, test);
+                }
+            });
+            const firstInput = inputArea.querySelector('.result-input');
+            if(firstInput) firstInput.focus();
+        }
+
+        function getSpecText(test) {
+            if(test.type === 'min') return `Min: ${test.min}`;
+            if(test.type === 'max') return `Max: ${test.max}`;
+            if(test.type === 'range') return `${test.min} - ${test.max}`;
+            if(test.type === 'text') return test.value || 'Visual';
+            return "";
+        }
+
+        function validateInput(input, test) {
+            const val = input.type === 'number' ? parseFloat(input.value) : input.value;
+            const sample = sessionData.samples[activeSampleIndex];
+            const statusEl = document.getElementById(`status_${sample.labNo}_${test.name}`);
+            
+            if(!input.value) { statusEl.className = "status-badge"; statusEl.innerText = "--"; return; }
+
+            let result = "FAIL";
+            let css = "status-fail";
+
+            if (test.type === 'min') {
+                if (val >= test.min) { result = "PASS"; css = "status-pass"; }
+            } else if (test.type === 'max') {
+                if (val <= test.max) { result = "PASS"; css = "status-pass"; }
+                else if (test.permissible_max && val <= test.permissible_max) { result = "RELAXED"; css = "status-relaxed"; }
+            } else if (test.type === 'range') {
+                if (val >= test.min && val <= test.max) { result = "PASS"; css = "status-pass"; }
+            } else {
+                result = "N/A"; css = "status-pass";
+            }
+
+            statusEl.innerText = result;
+            statusEl.className = `status-badge ${css}`;
+            
+            // Save to memory immediately
+            resultsStore[`${sample.labNo}_${test.name}`] = input.value;
+        }
+
+        function saveCurrentToMemory() {
+            const inputs = document.querySelectorAll('.result-input');
+            const sample = sessionData.samples[activeSampleIndex];
+            inputs.forEach(input => {
+                resultsStore[`${sample.labNo}_${input.dataset.testname}`] = input.value;
+            });
+        }
+
+        function saveAllResults() {
+            saveCurrentToMemory();
+            sessionData.results = resultsStore;
+            localStorage.setItem('labSessionData', JSON.stringify(sessionData));
+            alert("Results Prepared! Next Step: Document Generation.");
+            // window.location.href = 'report-gen.html';
+        }
+
+        // Jab Enter dabayein toh cursor agle box mein jaye
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+                const activeElement = document.activeElement;
+                
+                // Check karein ki kya hum kisi input box ke andar hain
+                if (activeElement.tagName === 'INPUT') {
+                    e.preventDefault(); // Enter se form submit hone se rokein
+                    
+                    // Page par jitne bhi input boxes hain unhe dhundhein
+                    const inputs = Array.from(document.querySelectorAll('input:not([disabled])'))
+                        .filter(el => el.offsetParent !== null); // Jo dikh rahe hain sirf wahi
+
+                    const index = inputs.indexOf(activeElement);
+                    if (index > -1 && index < inputs.length - 1) {
+                        inputs[index + 1].focus(); // Agle box par bhej dein
+                    }
+                }
+            }
+        });
+
+        
+    </script>
+</body>
+</html>
