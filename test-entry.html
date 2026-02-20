@@ -105,28 +105,58 @@
                 
                 // Logic for Spec Display
                 let specDisplay = test.method;
-                
-                card.innerHTML = `
-                    <div>
-                        <strong>${test.name}</strong><br>
-                        <small style="color:#666">${specDisplay}</small>
-                    </div>
-                    <div style="font-size: 0.85rem; color: #555;">${getSpecText(test)}</div>
-                    <div>
-                        <input type="${test.type === 'text' ? 'text' : 'number'}" 
-                               class="result-input" 
-                               placeholder="Enter Result"
-                               data-testname="${test.name}"
-                               value="${savedValue}"
-                               oninput="validateInput(this, ${JSON.stringify(test).replace(/"/g, '&quot;')})">
-                    </div>
-                    <div id="status_${storageKey}" class="status-badge">--</div>
-                `;
+
+                // Header section: test name and method/specDisplay
+                const headerDiv = document.createElement('div');
+
+                const nameStrong = document.createElement('strong');
+                nameStrong.textContent = test.name;
+                headerDiv.appendChild(nameStrong);
+
+                headerDiv.appendChild(document.createElement('br'));
+
+                const methodSmall = document.createElement('small');
+                methodSmall.style.color = '#666';
+                methodSmall.textContent = specDisplay;
+                headerDiv.appendChild(methodSmall);
+
+                // Spec text section
+                const specDiv = document.createElement('div');
+                specDiv.style.fontSize = '0.85rem';
+                specDiv.style.color = '#555';
+                specDiv.textContent = getSpecText(test);
+
+                // Input section
+                const inputWrapperDiv = document.createElement('div');
+
+                const inputEl = document.createElement('input');
+                inputEl.type = (test.type === 'text' ? 'text' : 'number');
+                inputEl.className = 'result-input';
+                inputEl.placeholder = 'Enter Result';
+                inputEl.setAttribute('data-testname', test.name);
+                inputEl.value = savedValue;
+                inputEl.addEventListener('input', function () {
+                    validateInput(this, test);
+                });
+
+                inputWrapperDiv.appendChild(inputEl);
+
+                // Status badge section
+                const statusDiv = document.createElement('div');
+                statusDiv.id = `status_${storageKey}`;
+                statusDiv.className = 'status-badge';
+                statusDiv.textContent = '--';
+
+                // Assemble card
+                card.appendChild(headerDiv);
+                card.appendChild(specDiv);
+                card.appendChild(inputWrapperDiv);
+                card.appendChild(statusDiv);
+
                 inputArea.appendChild(card);
                 
                 // Trigger validation if value exists
                 if(savedValue) {
-                    const inputEl = card.querySelector('.result-input');
                     validateInput(inputEl, test);
                 }
             });
