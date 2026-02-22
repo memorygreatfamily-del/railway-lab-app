@@ -5,11 +5,14 @@ import { db, collection, addDoc, getDocs, query, where, updateDoc, doc, arrayUni
 let currentTestsList = [];
 let currentStdDocId = null;
 let isCreatingNewStandard = false; 
+let currentSearchResults = {};
+// NEW: To store partial search results temporarily
 
 // NEW: Track current mode (Local vs Firebase)
 let currentModeIsLocal = false; 
 
-// --- 1. SEARCH STANDARD ---
+
+// --- 1. SEARCH STANDARD (Updated for Partial Match & List) ---
 async function searchStandard() {
     const searchInput = document.getElementById('stdSearch').value.toUpperCase().trim();
     const tableBody = document.getElementById('testTableBody');
@@ -19,25 +22,41 @@ async function searchStandard() {
     if (!searchInput) { alert("Enter Name!"); tableBody.innerHTML=""; return; }
 
     try {
-        const q = query(collection(db, "standards_master"), where("std_name", "==", searchInput));
+        // 'where' हटा दिया है, अब पूरा कलेक्शन लाएंगे
+        const q = collection(db, "standards_master");
         const querySnapshot = await getDocs(q);
         
         tableBody.innerHTML = ""; 
+        currentSearchResults = {}; // पुराने रिज़ल्ट्स क्लियर करें
+        let matchCount = 0;
 
         if (!querySnapshot.empty) {
             querySnapshot.forEach((doc) => {
-                currentStdDocId = doc.id;
                 const data = doc.data();
-                currentTestsList = data.tests;
-                displayTests(data.tests);
+                // Client-side filtering: Check partial match
+                if (data.std_name && data.std_name.toUpperCase().includes(searchInput)) {
+                    currentSearchResults[doc.id] = data; // डेटा मेमोरी में स्टोर कर लिया
+                    matchCount++;
+                    
+                    // टेबल में लिस्ट और Select बटन दिखाएँ
+                    tableBody.innerHTML += `
+                        <tr>
+                            <td colspan="3" style="font-weight:bold; color:#0056b3;">${data.std_name}</td>
+                            <td style="text-align: center;">
+                                <button class="btn btn-sm btn-primary" onclick="window.selectStandard('${doc.id}')">Select</button>
+                            </td>
+                        </tr>
+                    `;
+                }
             });
-            // Found: Enable "Add to Existing"
-            const btn = document.getElementById('btnAddCustomTest');
-            btn.innerText = "+ Add New Test to this Standard (Update DB)";
-            btn.style.display = 'block'; // Show button
-            btn.onclick = () => openCreationModal(searchInput, false); // False = Save to DB
+        }
+
+        if (matchCount > 0) {
+            // लिस्ट दिखने पर Custom Test बटन और हरा चेकमार्क छिपा कर रखें
+            document.getElementById('btnAddCustomTest').style.display = 'none';
+            document.getElementById('standardInfo').style.display = 'none';
         } else {
-            // Not Found
+            // Not Found कंडीशन
             currentStdDocId = null;
             tableBody.innerHTML = `
                 <tr>
@@ -49,9 +68,35 @@ async function searchStandard() {
                     </td>
                 </tr>`;
              document.getElementById('btnAddCustomTest').style.display = 'none';
+             document.getElementById('standardInfo').style.display = 'none';
         }
     } catch (e) { console.error(e); alert("Database Error"); }
 }
+
+// --- NEW: SELECT STANDARD ACTION (Hybrid UI) ---
+function selectStandard(docId) {
+    const data = currentSearchResults[docId];
+    if (!data) return;
+
+    currentStdDocId = docId;
+    currentTestsList = data.tests;
+    
+    // आपका ओरिजिनल UI: हरा चेकमार्क वाला बॉक्स चालू करें और उसमें नाम डालें
+    document.getElementById('currentStdName').innerText = data.std_name;
+    document.getElementById('standardInfo').style.display = 'block';
+
+    // अब tests को टेबल में लोड कर दें
+    displayTests(data.tests);
+
+    // "Add to Existing" बटन दिखाएँ
+    const btn = document.getElementById('btnAddCustomTest');
+    btn.innerText = "+ Add New Test to this Standard (Update DB)";
+    btn.style.display = 'block'; 
+    btn.onclick = () => openCreationModal(data.std_name, false); 
+}
+
+
+
 
 // --- 2. DISPLAY TESTS ---
 function displayTests(testsArray) {
@@ -222,4 +267,4 @@ async function saveTestLogic(isLocalOnly) {
 }
 
 // EXPORT
-export { searchStandard, startNewStandardCreation, openCreationModal, toggleLimitInputs, initAutoLoad, handleSaveClick };
+export { searchStandard, startNewStandardCreation, openCreationModal, toggleLimitInputs, initAutoLoad, handleSaveClick, selectStandard};
