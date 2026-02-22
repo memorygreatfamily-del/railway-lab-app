@@ -208,7 +208,7 @@
     </script> -->
     <script type="module">
         // Import 'handleSaveClick' too
-        import { searchStandard, startNewStandardCreation, openCreationModal, toggleLimitInputs, initAutoLoad, handleSaveClick } from "./js/standards.js";
+        import { searchStandard, startNewStandardCreation, openCreationModal, toggleLimitInputs, initAutoLoad, handleSaveClick, selectStandard } from "./js/standards.js";
 
         // EXPOSE TO WINDOW
         window.searchStandard = searchStandard;
@@ -216,7 +216,7 @@
         window.openCreationModal = openCreationModal;
         window.toggleLimitInputs = toggleLimitInputs;
         window.handleSaveClick = handleSaveClick; // <--- Yeh bahut zaroori hai
-        
+        window.selectStandard = selectStandard; //<New function added
         // Auto Load
         window.addEventListener('DOMContentLoaded', () => {
             initAutoLoad();
